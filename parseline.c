@@ -6,12 +6,15 @@ void parse_stdin() {
 	char *command = NULL;
 	int num_of_cmds;
 	char *piped_cmds[MAX_PIPE];
-	char *line_args[MAX_PIPE];
 	int i;
 	int j;
-	char tmp[CMD_MAX];
+	char *line_args[MAX_ARGS];
 	pid_t *children;
 	int pipes[MAX_PIPE][2];
+	
+	char **temp_args;
+	char *args[MAX_PIPE] = {NULL};
+	temp_args = args;
 
         printf("8=====D ");
         command = read_command();
@@ -29,14 +32,13 @@ void parse_stdin() {
 
 	/* fork my children */
 	/* Need to implement file redirection somewhere */
+
 	for (i=0; i<num_of_cmds; i++) {
 		if (!(children[i] = fork())) {
 			/* child i */
-			printf("%d: %s\n", i, piped_cmds[i]);
-			printf("hello my name is: %d\n", getpid());
-			printf("my args are: ");
+			parse_space(piped_cmds[i], temp_args);
 			for (j=0; j < (num_of_cmds-1); j++) {
-				printf("  %s  ", &line_args[i][j]); 
+				printf("  %s  ", temp_args[i]); 
 			}
 			/* move stdouts except for the last one */
 			if (i < (num_of_cmds - 1)) {
@@ -51,9 +53,7 @@ void parse_stdin() {
 				close(pipes[j][0]);
 				close(pipes[j][1]);
 			}
-			printf("i'm moving through a pipe\n");
-			execvp(&line_args[i][0], &line_args[i]);
-			exit(0);
+			execvp(temp_args[0], temp_args);
 		}
 	}
 
@@ -68,11 +68,23 @@ void parse_stdin() {
 	for (i=0; i<num_of_cmds; i++) {
 		wait(NULL);
 	}
-	
+	free(children);
 	free(command);
-	
 
 }
+
+int parse_space(char *command, char **line_args) {
+	char *tkn;
+	int i;
+	i = 0;
+	tkn = strtok(command, " ");
+	line_args[i++] = tkn;
+	while((tkn = strtok(NULL, " "))) {
+		line_args[i++] = tkn;
+	}
+	return i;
+}
+	
 
 char *read_command() {
 	char buf[SIZE] = {'\0'};
@@ -129,7 +141,6 @@ int parse(char *command, char **piped_cmds, char **line_args) {
         char output_str[SIZE];
 	char tmp_str[CMD_MAX];
 	char tmp[CMD_MAX];
-	int k;
 	
 	tokenize(command, piped_cmds, &num_of_cmds);
        
@@ -148,7 +159,7 @@ int parse(char *command, char **piped_cmds, char **line_args) {
             else {
 		no_redirect(piped_cmds, line_args, 
 				input_str, output_str, i,
-				&j, &num_of_args, num_of_cmds);
+				&j, &num_of_args, num_of_cmds, tmp);
             }
             printf("%12s","input: ");
             printf("%s",input_str);
@@ -159,7 +170,6 @@ int parse(char *command, char **piped_cmds, char **line_args) {
             printf("%12s","argv: ");
 	    strcpy(arg_output, "\0");
             for (j=0; j < num_of_args; j++) {
-		    printf("%d\n", j);
                     sprintf(tmp_output, "\"%s\",", line_args[j]);
                     strcat(arg_output, tmp_output);
             }
@@ -257,7 +267,7 @@ void redirect(char **piped_cmds, char **line_args, char *input_str,
 
 void no_redirect(char **piped_cmds, char **line_args, char *input_str, 
 		char *output_str, int i, int *j, int *num_of_args,
-	       	int num_of_cmds) {
+	       	int num_of_cmds, char *tmp) {
 	/* Handles the parsing for a command without redirection.
 	   Builds array of output strings in line_argsto be printed in parse()
 	*/
