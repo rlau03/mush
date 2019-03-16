@@ -18,6 +18,8 @@
 void handler (int signum) {
         /*Kill all children*/
         printf("\nKilling Children \n");
+        printf("8=====D ");
+	fflush(NULL);
 
 }
 

@@ -5,19 +5,28 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <fcntl.h>
 #define SIZE 25 
 #define CMD_MAX 512 
 #define MAX_ARGS 10
 #define MAX_PIPE 10
 #define TRUE 1
 
+typedef struct arguments arguments;
+struct arguments {
+	char **args;
+};
+
 void parse_stdin();
 char *read_command(void); 
-void parse(char *command); 
+int parse(char *command, char **piped_cmds, char **line_args); 
 int count_char(char *s, char c); 
 void redirect(char **piped_cmds, char **line_args, char *input_str, 
 		char *output_str, int i, int *j, int *num_of_args, 
-		int num_of_cmds); 
+		int num_of_cmds, char* tmp); 
 void no_redirect(char **piped_cmds, char **line_args, char *input_str, 
 		char *output_str, int i, int *j, int *num_of_args, 
 		int num_of_cmds); 
