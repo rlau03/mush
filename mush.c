@@ -15,17 +15,26 @@
 */
 #include "parseline.h"
 
+pid_t main_pid;
+
 void handler (int signum) {
+        pid_t current;
         /*Kill all children*/
         printf("\nKilling Children \n");
-        printf("8=====D ");
+        current = getpid();
+        if (current != main_pid){
+            exit(0);
+        }
+        else {
+            printf("8=====D ");
+        }
 	fflush(NULL);
 
 }
 
 int main(int argc, char *argv[]) {
         struct sigaction sa;
-
+        main_pid = getpid();
         /*Setting up signal*/
         sa.sa_handler = handler;
         sigemptyset(&sa.sa_mask);
@@ -34,12 +43,8 @@ int main(int argc, char *argv[]) {
 
         if (argc == 1){
             while(TRUE){
-                if (feof(stdin)){
-                    break;
-                }
-                else {
-                    parse_stdin();
-                }
+                printf("8=====D ");
+                parse_stdin();
             }
         }
 

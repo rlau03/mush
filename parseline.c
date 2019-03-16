@@ -16,7 +16,6 @@ void parse_stdin() {
 	char *args[MAX_PIPE] = {NULL};
 	temp_args = args;
 
-        printf("8=====D ");
         command = read_command();
         num_of_cmds = parse(command, piped_cmds, line_args);
 	children = malloc(num_of_cmds*sizeof(pid_t));
