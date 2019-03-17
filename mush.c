@@ -1,4 +1,4 @@
-/*Ryan Lau & Aaron VanderGraff
+/*Ryan Lau & Aaron VanderGraaff
   Dr. Nico
   Asgn 6: Mush
         This assignment is to make a simple shell. We must implement:

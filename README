@@ -1,6 +1,6 @@
 Ryan Lau(rlau03) & Aaron VanderGraaff (avanderg)
-Project 5: parseline
+Project 6: mush
 
 Special Instructions: No special instructions. Usage is as follows
-        ./parsline
-        and processes proper error handling as well.
+ 	./mush to start the shell. Supports SIGINT, file redirection,
+	and pipes. To run in script mode: ./mush <filename>.
