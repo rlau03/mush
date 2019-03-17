@@ -42,7 +42,7 @@ void parse_stdin(char *cmd, int interactive, int *pflag) {
 		tkn = strtok(NULL, " ");
 		tkn[strlen(tkn)-1] = '\0';
 		if(chdir(tkn) == -1) {
-			perror("chdir");
+			perror("tkn");
 		}
 		return;
 	}
@@ -50,7 +50,9 @@ void parse_stdin(char *cmd, int interactive, int *pflag) {
 	/*
         num_of_cmds = parse(command, piped_cmds, line_args);
 	*/
-	num_of_cmds = tokenize(command, piped_cmds);
+	if((num_of_cmds = tokenize(command, piped_cmds)) == -1) {
+		return;
+	}
 	children = malloc(num_of_cmds*sizeof(pid_t));
 
 	/* make the pipes. Want 1 less than the number of commands pipes */
@@ -76,14 +78,18 @@ void parse_stdin(char *cmd, int interactive, int *pflag) {
 			
 			/* check for redirect on first one */
 			if (i == 0 && strpbrk(piped_cmds[i], "<")) { 
-				redir_in(piped_cmds[i]);
+				if (redir_in(piped_cmds[i]) == -1) {
+					exit(1);
+				}
 			}
 			
 			/* check for redirect on last one */
 			if (i == num_of_cmds-1 && 
 					strpbrk(piped_cmds[i], ">")) {
 				/* redirect out */
-				redir_out(piped_cmds[i]);
+				if (redir_out(piped_cmds[i]) == -1) {
+					exit(1);	
+				}
 			}
 		
 			/* move stdouts except for the last one */
@@ -101,7 +107,7 @@ void parse_stdin(char *cmd, int interactive, int *pflag) {
 				close(pipes[j][1]);
 			}
 			execvp(temp_args[0], temp_args);
-			printf("command: %s not recognized\n", temp_args[0]);
+			perror(temp_args[0]);
 			exit(1);
 		}
 	}
@@ -119,7 +125,7 @@ void parse_stdin(char *cmd, int interactive, int *pflag) {
 
 }
 
-void redir_in(char *command) {
+int redir_in(char *command) {
 	int infd;
 	char tmp[CMD_MAX];
 	char *tkn;
@@ -141,16 +147,17 @@ void redir_in(char *command) {
        		
 	if ((infd = open(tkn, O_RDONLY, 0)) == -1) {
 		perror("open");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 	dup2(infd, STDIN_FILENO);
 	if (close(infd) == -1) {
 		perror("close");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
+	return 0;
 }
 
-void redir_out(char *command) {
+int redir_out(char *command) {
 	int outfd;
 	char tmp[CMD_MAX];
 	char *tkn;
@@ -172,13 +179,14 @@ void redir_out(char *command) {
 	if ((outfd = open(tkn, O_WRONLY|O_CREAT|O_TRUNC, 
 					S_IRUSR|S_IWUSR)) == -1) {
 		perror("open");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 	dup2(outfd, STDOUT_FILENO);
 	if (close(outfd) == -1 ) {
 		perror("close");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
+	return 0;
 }
 
 int parse_space(char *command, char **line_args, char *tmp) {
@@ -278,7 +286,7 @@ int tokenize(char *command, char **piped_cmds) {
 
 	if (strlen(command) > CMD_MAX) {
 	    printf("command too long\n");
-	    exit(EXIT_FAILURE);
+	    return -1;
 	}
 	if (command[strlen(command)-1] == '\n') {
 		command[strlen(command)-1] = '\0'; /*strip newline*/
@@ -289,13 +297,13 @@ int tokenize(char *command, char **piped_cmds) {
         while(tkn) {
 	    if (i > MAX_PIPE -1) {
 		printf("pipeline too deep\n");
-		exit(EXIT_FAILURE);
+		return -1;
 	    }
             piped_cmds[i] = tkn;
             tkn = strtok(NULL, "|");
 	    if (tkn && (tkn[0] == ' ' && strlen(tkn) == 1)) {
 	        printf("invalid null command\n");
-	        exit(EXIT_FAILURE);
+		return -1;
 	    }
             i++;
             (num_of_cmds)++;
@@ -307,19 +315,19 @@ int tokenize(char *command, char **piped_cmds) {
             if (strpbrk(piped_cmds[i], "<>")){
 	        if ((lcount = count_char(piped_cmds[i], '<')) > 1) {
 		    printf("%s: bad input redirection\n", tkn);
-		    exit(EXIT_FAILURE);
+		    return -1;
 		}
 		if ((rcount = count_char(piped_cmds[i], '>')) > 1) {
 		    printf("%s: bad output redirection\n", tkn);
-		    exit(EXIT_FAILURE);
+		    return -1;
 		}
 		if (i > 0 && lcount) {
 	            printf("%s: ambiguous input\n", tkn);
-		    exit(EXIT_FAILURE);
+		    return -1;
                 }
                 if (i != (num_of_cmds - 1) && rcount){
                     printf("%s: ambiguous output\n", tkn);
-                    exit(EXIT_FAILURE);
+		    return -1;
                 }
 	    }
 	    j = 0;
@@ -328,12 +336,12 @@ int tokenize(char *command, char **piped_cmds) {
 	    while(tkn) {
 	        if (j > MAX_ARGS-1) {
 	    	printf("%s: too many arguments\n", line_args[0]);
-	    	exit(EXIT_FAILURE);
+		return -1;
 	        }
 		if (iflag) {
 		    if (!strcmp(tkn, "<") || !strcmp(tkn, ">")) {
 		        printf("bad input redirection\n");
-			exit(EXIT_FAILURE);
+			return -1;
 		    }
 		    else {
 		        iflag = 0;
@@ -342,7 +350,7 @@ int tokenize(char *command, char **piped_cmds) {
 		if (oflag) {
 		    if (!strcmp(tkn, "<") || !strcmp(tkn, ">")) {
 		        printf("bad output redirection\n");
-			exit(EXIT_FAILURE);
+			return -1;
 		    }
 		    else {
 		        oflag = 0;
@@ -359,11 +367,11 @@ int tokenize(char *command, char **piped_cmds) {
 	    }
 	    if (iflag) {
 	        printf("bad input redirection\n");
-		exit(EXIT_FAILURE);
+		return -1;
 	    }
 	    else if (oflag) {
 	        printf("bad output redirection\n");
-		exit(EXIT_FAILURE);
+		return -1;
             }
      }
      return num_of_cmds;

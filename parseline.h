@@ -21,8 +21,8 @@ struct arg_list {
 };
 
 void parse_stdin(char *cmd, int interactive, int *pflag);
-void redir_in(char *command); 
-void redir_out(char *command); 
+int redir_in(char *command); 
+int redir_out(char *command); 
 int parse_space(char *command, char **line_args, char *tmp); 
 char *read_command(void); 
 int count_char(char *s, char c); 
