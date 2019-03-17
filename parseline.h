@@ -20,10 +20,10 @@ struct arg_list {
 	char *args[MAX_ARGS];
 };
 
-void parse_stdin(char *cmd, int interactive, int *pflag);
+void parse_stdin(FILE *fin, int interactive, int *pflag);
 int redir_in(char *command); 
 int redir_out(char *command); 
 int parse_space(char *command, char **line_args, char *tmp); 
-char *read_command(void); 
+char *read_command(FILE *fin); 
 int count_char(char *s, char c); 
 int tokenize(char *command, char **piped_cmds);

@@ -2,9 +2,8 @@
 #include "parseline.h"
 
 
-void parse_stdin(char *cmd, int interactive, int *pflag) {
-	char *tmp_command = NULL;
-	char command[CMD_MAX];
+void parse_stdin(FILE *fin, int interactive, int *pflag) {
+	char *command = NULL;
 	int num_of_cmds;
 	char *piped_cmds[MAX_PIPE];
 	int i;
@@ -23,17 +22,18 @@ void parse_stdin(char *cmd, int interactive, int *pflag) {
         
 
 	if (interactive) {
-        	tmp_command = read_command();
-		*pflag = 1;
-		strcpy(command, tmp_command);
-		free(tmp_command);
+        	command = read_command(stdin);
 	}
 	else {
-		strcpy(command, cmd);	
+		command = read_command(fin);
 	}
+	*pflag = 1;
 	
 	/* exit on exit command */
 	if (!strcmp(command, "exit\n")) {
+		if (!interactive) {
+			fclose(fin);
+		}
 		exit(0);
 	}
 	strcpy(tmpcd, command);
@@ -41,9 +41,13 @@ void parse_stdin(char *cmd, int interactive, int *pflag) {
 	if (!strcmp(tmpcd, "cd")) {
 		tkn = strtok(NULL, " ");
 		tkn[strlen(tkn)-1] = '\0';
+		if (!interactive) {
+			printf("%s", command);
+		}
 		if(chdir(tkn) == -1) {
 			perror("tkn");
 		}
+		free(command);
 		return;
 	}
 
@@ -106,6 +110,9 @@ void parse_stdin(char *cmd, int interactive, int *pflag) {
 				close(pipes[j][0]);
 				close(pipes[j][1]);
 			}
+			if (!interactive) {
+				printf("%s\n", temp_args[0]);
+			}
 			execvp(temp_args[0], temp_args);
 			perror(temp_args[0]);
 			exit(1);
@@ -122,6 +129,7 @@ void parse_stdin(char *cmd, int interactive, int *pflag) {
 		wait(NULL);
 	}
 	free(children);
+	free(command);
 
 }
 
@@ -213,7 +221,7 @@ int parse_space(char *command, char **line_args, char *tmp) {
 }
 	
 
-char *read_command() {
+char *read_command(FILE *fin) {
 	char buf[SIZE] = {'\0'};
 	char *command = NULL; 
 	size_t temp;
@@ -223,11 +231,12 @@ char *read_command() {
 
 	while (temp==SIZE-1 && buf[SIZE-2]!='\n') {
 		/* Read chunks of size SIZE into a buffer */
-		if (!fgets(buf, SIZE, stdin)) {
+		if (!fgets(buf, SIZE, fin)) {
 			/*perror("fgets");
 			exit(EXIT_FAILURE);*/
                         /* Commented EXIT_FAILURE, fgets returns NULL on ^D*/
                         printf("^D\n");
+			fclose(fin);
                         exit(0);
 		}
 		/* increment our total length by the length of the buffer */
