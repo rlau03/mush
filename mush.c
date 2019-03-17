@@ -25,9 +25,6 @@ void handler (int signum) {
         if (current != main_pid){
             exit(0);
         }
-        else {
-            printf("8=====D ");
-        }
 	fflush(NULL);
 
 }
@@ -47,9 +44,6 @@ int main(int argc, char *argv[]) {
                 parse_stdin();
             }
         }
-
-
-
 
 	return 0;
 }

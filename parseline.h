@@ -21,14 +21,9 @@ struct arg_list {
 };
 
 void parse_stdin();
-int parse_space(char *command, char **line_args); 
+void redir_in(char *command); 
+void redir_out(char *command); 
+int parse_space(char *command, char **line_args, char *tmp); 
 char *read_command(void); 
-int parse(char *command, char **piped_cmds,char **line_args); 
 int count_char(char *s, char c); 
-void redirect(char **piped_cmds, char **line_args, char *input_str, 
-		char *output_str, int i, int *j, int *num_of_args, 
-		int num_of_cmds, char* tmp); 
-void no_redirect(char **piped_cmds, char **line_args, char *input_str, 
-		char *output_str, int i, int *j, int *num_of_args, 
-		int num_of_cmds, char* tmp); 
-void tokenize(char *command, char **piped_cmds, int *num_of_cmds);
+int tokenize(char *command, char **piped_cmds);

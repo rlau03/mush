@@ -8,7 +8,6 @@ void parse_stdin() {
 	char *piped_cmds[MAX_PIPE];
 	int i;
 	int j;
-	char *line_args[MAX_ARGS];
 	pid_t *children;
 	int pipes[MAX_PIPE][2];
 	
@@ -16,8 +15,18 @@ void parse_stdin() {
 	char *args[MAX_PIPE] = {NULL};
 	temp_args = args;
 
+	char tmp[CMD_MAX];
+
         command = read_command();
+	
+	/* exit on exit command */
+	if (!strcmp(command, "exit\n")) {
+		exit(0);
+	}
+	/*
         num_of_cmds = parse(command, piped_cmds, line_args);
+	*/
+	num_of_cmds = tokenize(command, piped_cmds);
 	children = malloc(num_of_cmds*sizeof(pid_t));
 
 	/* make the pipes. Want 1 less than the number of commands pipes */
@@ -30,21 +39,36 @@ void parse_stdin() {
 
 
 	/* fork my children */
-	/* Need to implement file redirection somewhere */
-
 	for (i=0; i<num_of_cmds; i++) {
 		if (!(children[i] = fork())) {
 			/* child i */
-			parse_space(piped_cmds[i], temp_args);
-			for (j=0; j < (num_of_cmds-1); j++) {
+			parse_space(piped_cmds[i], temp_args, tmp);
+			/*
+			for (j=0; j < (num_of_cmds); j++) {
 				printf("  %s  ", temp_args[i]); 
 			}
+			*/
+			
+			
+			/* check for redirect on first one */
+			if (i == 0 && strpbrk(piped_cmds[i], "<")) { 
+				redir_in(piped_cmds[i]);
+			}
+			
+			/* check for redirect on last one */
+			if (i == num_of_cmds-1 && 
+					strpbrk(piped_cmds[i], ">")) {
+				/* redirect out */
+				redir_out(piped_cmds[i]);
+			}
+		
 			/* move stdouts except for the last one */
-			if (i < (num_of_cmds - 1)) {
+			if (i < (num_of_cmds - 1) ) {
 				dup2(pipes[i][1], STDOUT_FILENO);
 			}
+
 			/* move stdins except for on the first one */
-		        if (i > 0) {
+			if (i > 0) {
 				dup2(pipes[i-1][0], STDIN_FILENO);
 			}	
 			/* close extras */
@@ -53,11 +77,10 @@ void parse_stdin() {
 				close(pipes[j][1]);
 			}
 			execvp(temp_args[0], temp_args);
+			printf("command: %s not recognized\n", temp_args[0]);
+			exit(1);
 		}
 	}
-
-	 
-
 
 	for (j=0; j<(num_of_cmds-1); j++) {
 		close(pipes[j][0]);
@@ -72,14 +95,87 @@ void parse_stdin() {
 
 }
 
-int parse_space(char *command, char **line_args) {
+void redir_in(char *command) {
+	int infd;
+	char tmp[CMD_MAX];
+	char *tkn;
+	int rflag;
+	rflag = 0;
+
+	strcpy(tmp, command);
+
+	tkn = strtok(tmp, " ");
+	while ((tkn = strtok(NULL, " "))) {
+		if (rflag == 1) {
+			break;
+		}
+		if (*tkn == '<') {
+			rflag = 1;
+		}
+		
+	}
+       		
+	if ((infd = open(tkn, O_RDONLY, 0)) == -1) {
+		perror("open");
+		exit(EXIT_FAILURE);
+	}
+	dup2(infd, STDIN_FILENO);
+	if (close(infd) == -1) {
+		perror("close");
+		exit(EXIT_FAILURE);
+	}
+}
+
+void redir_out(char *command) {
+	int outfd;
+	char tmp[CMD_MAX];
+	char *tkn;
+	int rflag;
+	rflag = 0;
+
+	strcpy(tmp, command);
+
+	tkn = strtok(tmp, " ");
+	while ((tkn = strtok(NULL, " "))) {
+		if (rflag == 1) {
+			break;
+		}
+		if (*tkn == '>') {
+			rflag = 1;
+		}
+	}
+
+	if ((outfd = open(tkn, O_WRONLY|O_CREAT|O_TRUNC, 
+					S_IRUSR|S_IWUSR)) == -1) {
+		perror("open");
+		exit(EXIT_FAILURE);
+	}
+	dup2(outfd, STDOUT_FILENO);
+	if (close(outfd) == -1 ) {
+		perror("close");
+		exit(EXIT_FAILURE);
+	}
+}
+
+int parse_space(char *command, char **line_args, char *tmp) {
 	char *tkn;
 	int i;
+	int rflag;
 	i = 0;
-	tkn = strtok(command, " ");
+	rflag = 0;
+	strcpy(tmp, command);
+	tkn = strtok(tmp, " ");
 	line_args[i++] = tkn;
 	while((tkn = strtok(NULL, " "))) {
-		line_args[i++] = tkn;
+		if (rflag == 1) {
+			rflag = 0;
+		}
+		else if ((*tkn ==  '<') || (*tkn == '>')) {
+			rflag = 1;
+		}
+		else {
+			line_args[i++] = tkn;
+		}
 	}
 	return i;
 }
@@ -121,65 +217,6 @@ char *read_command() {
 	return command;
 }
 
-int parse(char *command, char **piped_cmds, char **line_args) {
-	/*This function parses the command inputed and prints it out in 
-	  different stages of the pipeline, noting the input and output
-	  locations and argc and argv array along the way
-        */
-
-        /*Tokenizing command line: Storing each command in an array index.
-                useful for knowing what stage of process*/ 
-
-        int num_of_cmds = 0; /*This is how many pipe commands there are*/
-        int num_of_args = 0; /*This is per pipe command*/
-        char tmp_output[CMD_MAX];
-        char arg_output[CMD_MAX]="";
-        int i=0;
-        int j=0;
-        char input_str[SIZE];
-        char output_str[SIZE];
-	char tmp_str[CMD_MAX];
-	char tmp[CMD_MAX];
-	
-	tokenize(command, piped_cmds, &num_of_cmds);
-       
-        for (i=0; i < num_of_cmds; i++) {
-            printf("\n--------\n");
-            printf("Stage %d: \"%s\"\n",i, piped_cmds[i]);
-            printf("--------\n");
-            /*DO PROCESSING IN HERE */
-	    strcpy(tmp_str, piped_cmds[i]);
-            if (strpbrk(tmp_str, "<>")){
-		
-		redirect(piped_cmds, line_args, 
-				input_str, output_str, i, &j, 
-				&num_of_args, num_of_cmds, tmp);
-            }
-            else {
-		no_redirect(piped_cmds, line_args, 
-				input_str, output_str, i,
-				&j, &num_of_args, num_of_cmds, tmp);
-            }
-            printf("%12s","input: ");
-            printf("%s",input_str);
-            printf("%12s","output: ");
-            printf("%s",output_str);
-            printf("%12s","argc: ");
-            printf("%d\n", num_of_args);
-            printf("%12s","argv: ");
-	    strcpy(arg_output, "\0");
-            for (j=0; j < num_of_args; j++) {
-                    sprintf(tmp_output, "\"%s\",", line_args[j]);
-                    strcat(arg_output, tmp_output);
-            }
-            arg_output[strlen(arg_output)-1] = '\n';
-            printf("%s",arg_output);
-            num_of_args = 0;
-	    j = 0;
-        }
-	return num_of_cmds;
-}
-
 int count_char(char *s, char c) {
 	/* Counts how many occurences of c there are in s, returns the count */
 
@@ -194,113 +231,13 @@ int count_char(char *s, char c) {
 	return count;
 }
 
-void redirect(char **piped_cmds, char **line_args, char *input_str, 
-		char *output_str, int i, int *j, int *num_of_args,
-	       	int num_of_cmds, char *tmp) {
-	/* Handles the parsing for a command including redirection.
-	   Builds array of output strings in line_argsto be printed in parse()
-	*/
 
-	char *tkn;
-	char *split_line;
-        char input_cpy[CMD_MAX];
-        char tmp_cmd[CMD_MAX];
-	int rflag;
-
-	strcpy(tmp_cmd, piped_cmds[i]);
-	strcpy(input_cpy, tmp_cmd);
-	if((split_line = strchr(tmp_cmd,'<'))){
-	    /*String contains < if it makes it here*/
-	    *split_line = '\0'; 
-	    /*This assignment to NULL splits the string
-		ie: strchr("test1 < test2", '<') = "< test2"*/
-	    strcpy(input_cpy, split_line + 1);
-	    strcpy(tmp_cmd,input_cpy);
-	    tkn = strtok(tmp_cmd, " ");
-	    sprintf(input_str,"%s\n", tkn);
-	}
-	else {
-	    if (i == 0) {
-		strcpy(input_str,"original stdin\n");                  
-	    }
-	    else {
-		sprintf(input_str,"pipe from stage %d\n",i-1);
-	    }
-	}
-
-
-	if((split_line = strchr(input_cpy,'>'))) {
-	    *split_line = '\0'; 
-	    strcpy(tmp_cmd, split_line+1);
-	    tkn = strtok(tmp_cmd, " ");
-	    sprintf(output_str,"%s\n", tkn);
-	}
-	else {
-	    sprintf(input_str, "%s\n", input_cpy);
-	    if (i == (num_of_cmds - 1)) {
-		strcpy(output_str,"original stdout\n");
-	    }
-	    else {
-		sprintf(output_str,"pipe to stage %d\n",i+1);
-	    }
-	}
-	rflag = 0;
-        strcpy(tmp, piped_cmds[i]);
-	tkn = strtok(tmp, " ");
-	
-	while(NULL != tkn) {
-	    if (rflag) {
-		rflag = 0;
-	    }
-	    else if (!strcmp(tkn, ">") || !strcmp(tkn, "<")) {
-		rflag = 1;
-	    }
-	    else {
-		printf("j: %d\n", *j);
-		line_args[(*j)++] = tkn;
-		(*num_of_args)++;
-	    }
-	    tkn = strtok(NULL," ");
-	} 
-}
-
-void no_redirect(char **piped_cmds, char **line_args, char *input_str, 
-		char *output_str, int i, int *j, int *num_of_args,
-	       	int num_of_cmds, char *tmp) {
-	/* Handles the parsing for a command without redirection.
-	   Builds array of output strings in line_argsto be printed in parse()
-	*/
-
-	char *tkn;
-	char tmp_cmd[CMD_MAX];
-                
-	if (i == 0) {
-	    strcpy(input_str,"original stdin\n");                   
-	}
-	else {
-	    sprintf(input_str,"pipe from stage %d\n",i-1);
-	}
-
-	if (i == (num_of_cmds - 1)) {
-	    strcpy(output_str,"original stdout\n");
-	}
-	else {
-	    sprintf(output_str,"pipe to stage %d\n",i+1);
-	}
-	strcpy(tmp_cmd, piped_cmds[i]);
-	tkn = strtok(piped_cmds[i], " ");
-	while(NULL != tkn) {
-	    line_args[(*j)++] = tkn;
-	    tkn = strtok(NULL," ");
-	    (*num_of_args)++;
-	} 
-}
-
-void tokenize(char *command, char **piped_cmds, int *num_of_cmds) {
+int tokenize(char *command, char **piped_cmds) {
 	/* Tokenizes command by pipes and puts them into piped_cmds array.
 	   Also handles errors.
 	*/
 
+	int num_of_cmds;
 	int i;
 	int j;
 	int rcount;
@@ -313,6 +250,7 @@ void tokenize(char *command, char **piped_cmds, int *num_of_cmds) {
 	rcount = 0;
 	lcount = 0;
 	i = 0;
+	num_of_cmds = 0;
 
 	if (strlen(command) > CMD_MAX) {
 	    printf("command too long\n");
@@ -334,10 +272,10 @@ void tokenize(char *command, char **piped_cmds, int *num_of_cmds) {
 	        exit(EXIT_FAILURE);
 	    }
             i++;
-            (*num_of_cmds)++;
+            (num_of_cmds)++;
         }
 
-	for (i=0; i < *num_of_cmds; i++) {
+	for (i=0; i < num_of_cmds; i++) {
 	    strcpy(tmp_cmd, piped_cmds[i]);
 	    tkn = strtok(tmp_cmd, " ");
             if (strpbrk(piped_cmds[i], "<>")){
@@ -353,7 +291,7 @@ void tokenize(char *command, char **piped_cmds, int *num_of_cmds) {
 	            printf("%s: ambiguous input\n", tkn);
 		    exit(EXIT_FAILURE);
                 }
-                if (i != (*num_of_cmds - 1) && rcount){
+                if (i != (num_of_cmds - 1) && rcount){
                     printf("%s: ambiguous output\n", tkn);
                     exit(EXIT_FAILURE);
                 }
@@ -402,5 +340,6 @@ void tokenize(char *command, char **piped_cmds, int *num_of_cmds) {
 		exit(EXIT_FAILURE);
             }
      }
+     return num_of_cmds;
 }
 
