@@ -27,14 +27,13 @@ void handler (int signum) {
         }
 	fflush(NULL);
 	if (!pflag) {
-	    printf("\n8=====D ");
+	    printf("\n8-P ");
 	    fflush(NULL);
 	}
 }
 
 int main(int argc, char *argv[]) {
         struct sigaction sa;
-	int i;
 	FILE *fin;
 
         main_pid = getpid();
@@ -48,7 +47,7 @@ int main(int argc, char *argv[]) {
         if (argc == 1){
             while(TRUE){	
 		pflag = 0;
-	        printf("8=====D ");
+	        printf("8-P ");
                 parse_stdin(NULL, 1, &pflag);
             }
         }
@@ -56,7 +55,7 @@ int main(int argc, char *argv[]) {
 		fin = fopen(argv[1], "r");
 		while(TRUE) {
 			pflag = 0;
-			printf("8=====D ");
+			printf("8-P ");
 			fflush(NULL);
 			parse_stdin(fin, 0, &pflag);
 		}
