@@ -2,7 +2,7 @@
 #include "parseline.h"
 
 
-void parse_stdin(char *cmd, int interactive) {
+void parse_stdin(char *cmd, int interactive, int *pflag) {
 	char *tmp_command = NULL;
 	char command[CMD_MAX];
 	int num_of_cmds;
@@ -17,10 +17,12 @@ void parse_stdin(char *cmd, int interactive) {
 	temp_args = args;
 
 	char tmp[CMD_MAX];
+	*pflag = 0;
         
 
 	if (interactive) {
         	tmp_command = read_command();
+		*pflag = 1;
 		strcpy(command, tmp_command);
 		free(tmp_command);
 	}
@@ -97,6 +99,7 @@ void parse_stdin(char *cmd, int interactive) {
 	}
 	
 	for (i=0; i<num_of_cmds; i++) {
+
 		wait(NULL);
 	}
 	free(children);

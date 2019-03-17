@@ -16,17 +16,20 @@
 #include "parseline.h"
 
 pid_t main_pid;
+int pflag = 0;
 
 void handler (int signum) {
         pid_t current;
         /*Kill all children*/
-        printf("\nKilling Children \n");
         current = getpid();
         if (current != main_pid){
             exit(0);
         }
 	fflush(NULL);
-
+	if (!pflag) {
+	    printf("\n8=====D ");
+	    fflush(NULL);
+	}
 }
 
 int main(int argc, char *argv[]) {
@@ -42,16 +45,17 @@ int main(int argc, char *argv[]) {
         sigaction(SIGINT, &sa, NULL);
 
         if (argc == 1){
-            while(TRUE){
+            while(TRUE){	
+		pflag = 0;
 	        printf("8=====D ");
-                parse_stdin(NULL, 1);
+                parse_stdin(NULL, 1, &pflag);
             }
         }
 	else {
 		for (i=1; i<argc; i++) {
 	                printf("8=====D ");
 			fflush(NULL);
-			parse_stdin(argv[i], 0);
+			parse_stdin(argv[i], 0, &pflag);
 		}
 	}
 
