@@ -11,6 +11,8 @@ void parse_stdin(char *cmd, int interactive, int *pflag) {
 	int j;
 	pid_t *children;
 	int pipes[MAX_PIPE][2];
+	char *tkn;
+	char tmpcd[CMD_MAX];
 	
 	char **temp_args;
 	char *args[MAX_PIPE] = {NULL};
@@ -34,6 +36,17 @@ void parse_stdin(char *cmd, int interactive, int *pflag) {
 	if (!strcmp(command, "exit\n")) {
 		exit(0);
 	}
+	strcpy(tmpcd, command);
+	tkn = strtok(tmpcd, " ");
+	if (!strcmp(tmpcd, "cd")) {
+		tkn = strtok(NULL, " ");
+		tkn[strlen(tkn)-1] = '\0';
+		if(chdir(tkn) == -1) {
+			perror("chdir");
+		}
+		return;
+	}
+
 	/*
         num_of_cmds = parse(command, piped_cmds, line_args);
 	*/
