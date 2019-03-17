@@ -31,8 +31,11 @@ void handler (int signum) {
 
 int main(int argc, char *argv[]) {
         struct sigaction sa;
+	int i;
+
         main_pid = getpid();
-        /*Setting up signal*/
+        
+	/*Setting up signal*/
         sa.sa_handler = handler;
         sigemptyset(&sa.sa_mask);
         sa.sa_flags = SA_RESTART;
@@ -40,10 +43,18 @@ int main(int argc, char *argv[]) {
 
         if (argc == 1){
             while(TRUE){
-                printf("8=====D ");
-                parse_stdin();
+	        printf("8=====D ");
+                parse_stdin(NULL, 1);
             }
         }
+	else {
+		for (i=1; i<argc; i++) {
+	                printf("8=====D ");
+			fflush(NULL);
+			parse_stdin(argv[i], 0);
+		}
+	}
+
 
 	return 0;
 }

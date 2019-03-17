@@ -20,7 +20,7 @@ struct arg_list {
 	char *args[MAX_ARGS];
 };
 
-void parse_stdin();
+void parse_stdin(char *cmd, int interactive);
 void redir_in(char *command); 
 void redir_out(char *command); 
 int parse_space(char *command, char **line_args, char *tmp); 

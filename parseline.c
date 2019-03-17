@@ -2,8 +2,9 @@
 #include "parseline.h"
 
 
-void parse_stdin() {
-	char *command = NULL;
+void parse_stdin(char *cmd, int interactive) {
+	char *tmp_command = NULL;
+	char command[CMD_MAX];
 	int num_of_cmds;
 	char *piped_cmds[MAX_PIPE];
 	int i;
@@ -16,8 +17,16 @@ void parse_stdin() {
 	temp_args = args;
 
 	char tmp[CMD_MAX];
+        
 
-        command = read_command();
+	if (interactive) {
+        	tmp_command = read_command();
+		strcpy(command, tmp_command);
+		free(tmp_command);
+	}
+	else {
+		strcpy(command, cmd);	
+	}
 	
 	/* exit on exit command */
 	if (!strcmp(command, "exit\n")) {
@@ -91,7 +100,6 @@ void parse_stdin() {
 		wait(NULL);
 	}
 	free(children);
-	free(command);
 
 }
 
@@ -256,8 +264,10 @@ int tokenize(char *command, char **piped_cmds) {
 	    printf("command too long\n");
 	    exit(EXIT_FAILURE);
 	}
-        
-	command[strlen(command)-1] = '\0'; /*strip newline*/
+	if (command[strlen(command)-1] == '\n') {
+		command[strlen(command)-1] = '\0'; /*strip newline*/
+	}
+
         tkn = strtok(command, "|");
 
         while(tkn) {
