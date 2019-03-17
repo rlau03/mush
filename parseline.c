@@ -45,7 +45,7 @@ void parse_stdin(FILE *fin, int interactive, int *pflag) {
 			printf("%s", command);
 		}
 		if(chdir(tkn) == -1) {
-			perror("tkn");
+			perror(tkn);
 		}
 		free(command);
 		return;
