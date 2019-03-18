@@ -20,6 +20,7 @@ int pflag = 0;
 
 void handler (int signum) {
         pid_t current;
+	char cwd[CMD_MAX];
         /*Kill all children*/
         current = getpid();
         if (current != main_pid){
@@ -27,7 +28,9 @@ void handler (int signum) {
         }
 	fflush(NULL);
 	if (!pflag) {
-	    printf("\n8-P ");
+	    getcwd(cwd, CMD_MAX);
+	    printf("\n[%s] ", cwd);
+	    printf("8==D~ ");
 	    fflush(NULL);
 	}
 }
@@ -35,6 +38,7 @@ void handler (int signum) {
 int main(int argc, char *argv[]) {
         struct sigaction sa;
 	FILE *fin;
+	char cwd[CMD_MAX];
 
         main_pid = getpid();
         
@@ -47,7 +51,9 @@ int main(int argc, char *argv[]) {
         if (argc == 1){
             while(TRUE){	
 		pflag = 0;
-	        printf("8-P ");
+		getcwd(cwd, CMD_MAX);
+		printf("[%s] ", cwd);
+	        printf("8==D~ ");
                 parse_stdin(NULL, 1, &pflag);
             }
         }
@@ -55,7 +61,9 @@ int main(int argc, char *argv[]) {
 		fin = fopen(argv[1], "r");
 		while(TRUE) {
 			pflag = 0;
-			printf("8-P ");
+			getcwd(cwd, CMD_MAX);
+			printf("[%s] ", cwd);
+			printf("8==D~ ");
 			fflush(NULL);
 			parse_stdin(fin, 0, &pflag);
 		}

@@ -18,6 +18,7 @@ void parse_stdin(FILE *fin, int interactive, int *pflag) {
 	temp_args = args;
 
 	char tmp[CMD_MAX];
+	int size;
 	*pflag = 0;
         
 
@@ -72,7 +73,7 @@ void parse_stdin(FILE *fin, int interactive, int *pflag) {
 	for (i=0; i<num_of_cmds; i++) {
 		if (!(children[i] = fork())) {
 			/* child i */
-			parse_space(piped_cmds[i], temp_args, tmp);
+			size = parse_space(piped_cmds[i], temp_args, tmp);
 			/*
 			for (j=0; j < (num_of_cmds); j++) {
 				printf("  %s  ", temp_args[i]); 
@@ -112,6 +113,9 @@ void parse_stdin(FILE *fin, int interactive, int *pflag) {
 			}
 			if (!interactive) {
 				printf("%s\n", temp_args[0]);
+			}
+			if (!strcmp(temp_args[0], "ls")) {
+				temp_args[size++] = "--color=auto";
 			}
 			execvp(temp_args[0], temp_args);
 			perror(temp_args[0]);
