@@ -52,8 +52,8 @@ int main(int argc, char *argv[]) {
             while(TRUE){	
 		pflag = 0;
 		getcwd(cwd, CMD_MAX);
-		printf("[%s] ", cwd);
-	        printf("8==D~ ");
+		printf(KCYN "[%s] ", cwd);
+	        printf(KMAG "8==D~ " KNRM);
                 parse_stdin(NULL, 1, &pflag);
             }
         }
@@ -62,8 +62,8 @@ int main(int argc, char *argv[]) {
 		while(TRUE) {
 			pflag = 0;
 			getcwd(cwd, CMD_MAX);
-			printf("[%s] ", cwd);
-			printf("8==D~ ");
+			printf(KCYN "[%s] ", cwd);
+			printf(KMAG "8==D~ ;" KNRM);
 			fflush(NULL);
 			parse_stdin(fin, 0, &pflag);
 		}

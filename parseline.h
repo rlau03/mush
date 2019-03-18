@@ -14,6 +14,9 @@
 #define MAX_ARGS 10
 #define MAX_PIPE 10
 #define TRUE 1
+#define KNRM "\x1B[0m"
+#define KMAG "\x1B[35m"
+#define KCYN "\x1B[36m"
 
 typedef struct arguments arguments;
 struct arg_list {
